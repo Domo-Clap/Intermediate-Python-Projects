@@ -10,6 +10,18 @@
 # Created by Domo The Slime
 ########################################################################################################################
 
+
+
+########################################################################################################################
+# Latest Update Date: 8/18/2024
+# Current Version: 1.1
+# Old Version: 1.0
+# Changes: Added logic that changes the channel name whenever the creator, or current owner of the channel leaves. Also added simple logic to make the channel name the user's nickname
+########################################################################################################################
+
+
+
+
 # Imports discord lib for usage
 import discord
 from discord.ext import commands
@@ -28,7 +40,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Dictionary used to hold the user ids related to the voice channel
 user_channels = {}
 
-TARGET_VC_CHANNEL = 000000000
+TARGET_VC_CHANNEL = 000000000000000000
 
 # Basic event tracker for bot to show it was logged in correctly
 @bot.event
@@ -41,6 +53,12 @@ async def on_ready():
 # Before represents the state of the user before the update occurs
 # After represents the state of the user after the update occurs
 ########################################################################################################################
+
+def find_key_by_value(d, value):
+    for key, val in d.items():
+        if val == value:
+            return key
+    return None
 
 
 # Main event code
@@ -59,7 +77,7 @@ async def on_voice_state_update(member, before, after):
         # If the member (person who joined channel) has not made a voice channel yet, then a new channel will be made
         if member.id not in user_channels:
             # Gets the user's name
-            username = member.name
+            username = member.nick if member.nick else member.name
 
             # Sets the channel name for the made VC
             channel_name = f'{username}\'s VC'
@@ -79,6 +97,8 @@ async def on_voice_state_update(member, before, after):
         # Gets the channel based on the channelID
         channel = bot.get_channel(before.channel.id)
 
+        channel_creator = find_key_by_value(user_channels, channel)
+
         # If the channel exists and is empty, then the channel is deleted
         if channel and len(channel.members) == 0:
             # Deletes the channel
@@ -88,5 +108,20 @@ async def on_voice_state_update(member, before, after):
             del user_channels[user_id]
             print(f'Deleted empty voice channel: {channel.name}')
 
+        elif channel and channel_creator not in [member.id for member in channel.members]:
+
+            next_user = next(iter(channel.members), None)
+
+            if next_user:
+                new_username = next_user.nick if next_user.nick else next_user.name
+
+                new_Channel_Name = f'{new_username}\'s VC'
+
+                await channel.edit(name=new_Channel_Name)
+
+                del user_channels[channel_creator]
+
+                user_channels[next_user.id] = channel.id
+
 # Runs the bot code
-bot.run('BOT TOKEN')
+bot.run('Bot Token')
